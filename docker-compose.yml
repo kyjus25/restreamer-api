@@ -1,0 +1,15 @@
+services:
+  restreamer:
+    image: datarhei/restreamer
+    ports:
+      - "8080:8080" # Web UI
+      - "1935:1935" # RTMP
+      - "1936:1936" # RTMP (alternate/control)
+      - "6000:6000/udp" # UDP stream (e.g., RTP)
+    # volumes:
+    #   - restreamer-data:/core/data
+    #   - restreamer-config:/core/config
+    restart: unless-stopped
+# volumes:
+#   restreamer-data:
+#   restreamer-config:
