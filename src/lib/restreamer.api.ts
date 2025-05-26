@@ -1,5 +1,6 @@
+import { channelMetadata } from "./payload/channel_metadata";
 import { probeProcess } from "./payload/probe_process";
-import type { TokenResponse } from "./restreamer.type";
+import type { Meta, Probe, Stream, TokenResponse } from "./restreamer.type";
 
 let _token: TokenResponse | null = null;
 const token = async () => {
@@ -38,7 +39,7 @@ export const restreamerApi = {
       url: `${host}/${id}.stream/${Bun.env.RESTREAMER_RTMP_TOKEN}`,
     };
   },
-  createProbeProcess: async (id: string) => {
+  createProcess: async (body: any) => {
     const TOKEN = await token();
     const res = await fetch(`${Bun.env.RESTREAMER_URL}/api/v3/process`, {
       method: "POST",
@@ -46,15 +47,15 @@ export const restreamerApi = {
         Authorization: `Bearer ${TOKEN}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(probeProcess(id)),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
-      throw new Error(`Failed creating probe process: ${res.statusText}`);
+      throw new Error(`Failed creating process: ${res.statusText}`);
     }
     const data = (await res.json()) as any;
     return data;
   },
-  getStreamResolution: async (id: string) => {
+  probeStream: async (id: string) => {
     const TOKEN = await token();
     const res = await fetch(
       `${Bun.env.RESTREAMER_URL}/api/v3/process/restreamer-ui%3Aingest%3A${id}_probe/probe`,
@@ -67,28 +68,64 @@ export const restreamerApi = {
     if (!res.ok) {
       throw new Error(`Failed getting stream resolution: ${res.statusText}`);
     }
+    const data = (await res.json()) as Probe;
+    return data;
+  },
+  deleteProbeProcess: async (id: string) => {
+    const TOKEN = await token();
+    const res = await fetch(
+      `${Bun.env.RESTREAMER_URL}/api/v3/process/restreamer-ui%3Aingest%3A${id}_probe`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+        },
+      }
+    );
+    if (!res.ok) {
+      throw new Error(`Failed deleting probe process: ${res.statusText}`);
+    }
     const data = (await res.json()) as any;
     return data;
   },
-  createChannel: (id: string) => {
-    return fetch(`${Bun.env.RESTREAMER_URL}/api/channel`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "test",
-        description: "test",
-        type: "rtmp",
-        input: {
-          type: "rtmp",
-          url: "rtmp://localhost:1935/live/test",
+  putChannelMetadata: async (id: string, streams: Stream[], meta: Meta) => {
+    const TOKEN = await token();
+    const res = await fetch(
+      `${Bun.env.RESTREAMER_URL}/api/v3/process/restreamer-ui%3Aingest%3A${id}/metadata/restreamer-ui`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+          "Content-Type": "application/json",
         },
-        output: {
-          type: "rtmp",
-          url: "rtmp://localhost:1935/live/test",
-        },
-      }),
-    });
+        body: JSON.stringify(channelMetadata(id, streams, meta)),
+      }
+    );
+    if (!res.ok) {
+      throw new Error(`Failed updating channel metadata: ${res.statusText}`);
+    }
+    const data = (await res.json()) as any;
+    return data;
   },
+  //   createChannel: (id: string) => {
+  //     return fetch(`${Bun.env.RESTREAMER_URL}/api/channel`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         name: "test",
+  //         description: "test",
+  //         type: "rtmp",
+  //         input: {
+  //           type: "rtmp",
+  //           url: "rtmp://localhost:1935/live/test",
+  //         },
+  //         output: {
+  //           type: "rtmp",
+  //           url: "rtmp://localhost:1935/live/test",
+  //         },
+  //       }),
+  //     });
+  //   },
 };
