@@ -24,44 +24,33 @@ const app = new Elysia()
   })
   .post("/create/channel/:id", async (req) => {
     const id: string = req.params.id;
-    const createProbeProcess = await restreamerApi.createProcess(
-      probeProcess(id)
-    );
+    // 1. Create probe process that will get the stream tracks
+    await restreamerApi.createProcess(probeProcess(id));
+    // 2. Get the stream tracks
     const probeStream = await restreamerApi.probeStream(id);
+    // 3. Delete the stream process
     await restreamerApi.deleteProbeProcess(id);
-
+    // Error if stream is not playing
     if (probeStream.streams.length === 0) {
       throw new Error("No stream tracks found. Are you streaming?");
     }
-    // console.log("PROBE", probeStream);
-
-    const createChannelProcess = await restreamerApi.createProcess(
-      channelProcess(id)
-    );
-    // console.log("CHANNEL PROCESS", createChannelProcess);
-
-    const createChannelMetadata = await restreamerApi.putChannelMetadata(
-      id,
-      probeStream.streams,
-      {
-        meta: {
-          name: id,
-          description: "Test",
-          author: {
-            name: "Justin",
-            description: "Meeeee!",
-          },
+    // 4. Create channel process
+    await restreamerApi.createProcess(channelProcess(id));
+    // 5. Update channel metadata and stream tracks
+    await restreamerApi.putChannelMetadata(id, probeStream.streams, {
+      meta: {
+        name: id,
+        description: "Test",
+        author: {
+          name: "Justin",
+          description: "Meeeee!",
         },
-        license: "CC BY 4.0",
-      }
-    );
-    // console.log("METADATA", createChannelMetadata);
-
-    const createSnapshotProcess = await restreamerApi.createProcess(
-      snapshotProcess(id)
-    );
-    // console.log("SNAPSHOT PROCESS", createSnapshotProcess);
-
+      },
+      license: "CC BY 4.0",
+    });
+    // 6. Create snapshot process for UI images
+    await restreamerApi.createProcess(snapshotProcess(id));
+    // Return successful
     return true;
   })
   .listen(3000);
